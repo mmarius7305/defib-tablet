@@ -1,0 +1,17 @@
+name: defib_tablet
+description: DefibTablet - monitorizare date defibrilator (iOS, Android).
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_blue_plus: ^1.32.0
+  defib_core:
+    path: core
+
+flutter:
+  uses-material-design: true

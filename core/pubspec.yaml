@@ -1,0 +1,7 @@
+name: defib_core
+description: Nucleul comun al aplicației DefibTablet - logica independentă de platformă.
+version: 0.1.0
+environment:
+  sdk: ^3.0.0
+dev_dependencies:
+  test: ^1.24.0

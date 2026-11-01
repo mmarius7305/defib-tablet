@@ -13,9 +13,8 @@ import 'dart:typed_data';
 import 'connection.dart';
 import 'frames.dart';
 import 'models.dart';
-
-/// Ritmurile suportate de simulator.
-enum SimRhythm { sinus, vtach, vfib, asystole }
+import 'remote_control.dart';
+export 'remote_control.dart' show SimRhythm, RemoteControllable;
 
 /// Construire simplă de payload-uri binare little-endian.
 class Bin {
@@ -230,8 +229,8 @@ class SimulatorTransport implements ByteTransport {
 }
 
 /// Driverul aplicației pentru simulatorul integrat.
-class SimulatorDriver implements DefibrillatorDriver {
-  SimulatorTransport? _transport;
+class SimulatorDriver implements DefibrillatorDriver, RemoteControllable {
+  ByteTransport? _transport;
   final _codec = SajLinkCodec();
 
   final _vitals = StreamController<VitalsSample>.broadcast();
@@ -259,14 +258,17 @@ class SimulatorDriver implements DefibrillatorDriver {
   Stream<DefibEvent> get events => _events.stream;
 
   @override
+  bool get supportsRemoteControl =>
+      _state == DriverState.connected && _transport != null;
+
+  @override
   Future<void> connect(ByteTransport transport) async {
-    if (transport is! SimulatorTransport) {
-      throw StateError('SimulatorDriver acceptă doar SimulatorTransport.');
-    }
     _transport = transport;
     _state = DriverState.connecting;
     _sub = transport.incoming.listen(_onBytes);
-    transport.start();
+    if (transport is SimulatorTransport) {
+      transport.start();
+    }
     _state = DriverState.connected;
   }
 
@@ -316,20 +318,19 @@ class SimulatorDriver implements DefibrillatorDriver {
     }
   }
 
-  /// Trimite simulatorului o comandă de schimbare a ritmului.
+  @override
   Future<void> setRhythm(SimRhythm rhythm) async {
-    final b = Bin()
-      ..u8(1)
-      ..u8(rhythm.index);
-    await _transport?.send(SajLinkCodec.encode(SajFrame(SajFrameType.command, b.take())));
+    await _transport?.send(encodeSetRhythm(rhythm));
   }
 
-  /// Trimite simulatorului o comandă de administrare a unui șoc de test.
+  @override
   Future<void> deliverShock({int joules = 150}) async {
-    final b = Bin()
-      ..u8(2)
-      ..u16(joules);
-    await _transport?.send(SajLinkCodec.encode(SajFrame(SajFrameType.command, b.take())));
+    await _transport?.send(encodeDeliverShock(joules: joules));
+  }
+
+  @override
+  Future<void> runSelfTest() async {
+    await _transport?.send(encodeSelfTest());
   }
 
   @override
@@ -337,5 +338,6 @@ class SimulatorDriver implements DefibrillatorDriver {
     _state = DriverState.disconnected;
     await _sub?.cancel();
     await _transport?.close();
+    _transport = null;
   }
 }

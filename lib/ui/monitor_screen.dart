@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:defib_core/connection.dart';
 import 'package:defib_core/models.dart';
-import 'package:defib_core/simulator.dart';
+import 'package:defib_core/remote_control.dart';
 
 import '../app_state.dart';
 import 'connect_screen.dart' show InheritedAppState;
@@ -22,7 +21,7 @@ class MonitorScreen extends StatelessWidget {
       animation: state,
       builder: (context, _) {
         final v = state.latestVitals;
-        final isSim = state.driver is SimulatorDriver;
+        final canRemote = state.supportsRemoteControl;
         return Scaffold(
           backgroundColor: Colors.black,
           appBar: AppBar(
@@ -83,8 +82,8 @@ class MonitorScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                // Panou simulator: doar când driverul e simulatorul.
-                if (isSim)
+                // Telecomandă: local (simulator) sau remote (TCP SAJLink).
+                if (canRemote)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),
                     child: Wrap(
@@ -98,6 +97,10 @@ class MonitorScreen extends StatelessWidget {
                         ActionChip(
                           label: const Text('ȘOC 150J'),
                           onPressed: () => state.simulateShock(),
+                        ),
+                        ActionChip(
+                          label: const Text('AUTO-TEST'),
+                          onPressed: () => state.runSelfTest(),
                         ),
                       ],
                     ),

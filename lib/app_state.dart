@@ -4,7 +4,10 @@ import 'package:flutter/foundation.dart';
 
 import 'package:defib_core/connection.dart';
 import 'package:defib_core/models.dart';
+import 'package:defib_core/remote_control.dart';
+import 'package:defib_core/sajlink_driver.dart';
 import 'package:defib_core/simulator.dart';
+import 'package:defib_core/tcp_transport.dart';
 
 /// Starea aplicației: leagă driverul de defibrilator de interfață.
 ///
@@ -65,27 +68,53 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// `true` când driverul curent acceptă telecomandă.
+  bool get supportsRemoteControl {
+    final d = driver;
+    return d is RemoteControllable && d.supportsRemoteControl;
+  }
+
   /// Comoditate: pornește simulatorul integrat.
   Future<void> connectSimulator() async {
     final d = SimulatorDriver();
     await connect(newDriver: d, transport: SimulatorTransport());
   }
 
-  /// Schimbă ritmul simulatorului (activ doar pe simulator).
+  /// Conectare TCP la un sim_server / aparat SAJLink remote.
+  Future<void> connectTcpRemote({
+    required String host,
+    int port = 45678,
+  }) async {
+    final transport = TcpTransport();
+    await transport.connect(host, port);
+    final d = SajLinkDriver();
+    await connect(newDriver: d, transport: transport);
+  }
+
+  /// Schimbă ritmul (simulator local sau remote).
   Future<void> simulateRhythm(SimRhythm rhythm) async {
     final d = driver;
-    if (d is SimulatorDriver) {
+    if (d is RemoteControllable && d.supportsRemoteControl) {
       await d.setRhythm(rhythm);
-      _log('Ritm simulat: $rhythm');
+      _log('Ritm: $rhythm');
     }
   }
 
-  /// Administrează un șoc de test (activ doar pe simulator).
+  /// Administrează un șoc de test (local sau remote).
   Future<void> simulateShock({int joules = 150}) async {
     final d = driver;
-    if (d is SimulatorDriver) {
+    if (d is RemoteControllable && d.supportsRemoteControl) {
       await d.deliverShock(joules: joules);
-      _log('Șoc simulat: ${joules}J');
+      _log('Șoc: ${joules}J');
+    }
+  }
+
+  /// Cere auto-test pe aparat/simulator.
+  Future<void> runSelfTest() async {
+    final d = driver;
+    if (d is RemoteControllable && d.supportsRemoteControl) {
+      await d.runSelfTest();
+      _log('Auto-test cerut');
     }
   }
 

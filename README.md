@@ -7,7 +7,8 @@ datele (ECG + semne vitale + evenimente) și le afișează live pe ecran.
 - **Windows CE**: aplicație separată C# .NET CF 3.5 (`wince/`), același
   codec și același ecran de monitor.
 - **Nucleul comun** (`core/`, Dart pur, portat și în C#): drivere,
-  codec de cadre, buffer ECG. **17/17 verificări trecute** (vezi mai jos).
+  codec de cadre, buffer ECG, telecomandă TCP, timpi misiune.
+  **20/20 teste** + **17/17 verificări** standalone (vezi mai jos).
 
 ## Structură
 
@@ -60,22 +61,31 @@ flutter build ios    # iOS (necesită macOS + Xcode)
 
 La pornire: ecranul de conectare oferă **Simulator integrat** (rulează
 integral, fără hardware — ECG la 250 Hz, FC/SpO₂/EtCO₂, comenzi de ritm
-și șoc) și **Bluetooth LE** (scanare + transport generic).
+și șoc), **Telecomandă TCP** (client SAJLink către `sim_server` pe portul
+45678 — ritm / șoc / auto-test pe LAN), **Echipaj — timpi misiune**
+(butoane PLECARE…LIBER pe gateway, ONLINE / STORE-AND-FORWARD, navigare)
+și **Bluetooth LE** (scanare + transport generic).
+
+```bash
+# pe PC-ul din ambulanță / lab (simulator remote):
+cd core && dart run tool/sim_server.dart --port 45678
+```
 
 ## Verificarea nucleului
 
 ```bash
 cd core
 dart pub get
-dart test                    # 17 teste
+dart test                    # 20 teste (inclusiv telecomandă TCP)
 # sau, în medii fără runner:
-dart run tool/verify.dart
+dart run tool/verify.dart    # 17 verificări
 ```
 
 Acoperă: codec-ul SAJLink (roundtrip, octet-cu-octet, CRC corupt, zgomot,
-payloaduri mari), bufferul ECG (ordine, circularitate, clear) și
-simulatorul (număr real de bătăți pentru 72/180 bpm, vitale plauzibile,
-șocuri cu energia corectă, evenimente de schimbare a ritmului).
+payloaduri mari), bufferul ECG (ordine, circularitate, clear),
+simulatorul (bătăi 72/180 bpm, vitale, șocuri, schimbare ritm),
+telecomanda TCP loopback (șoc 200 J, rhythmAnalysis) și coada offline
+anti-dublu-click pentru timpii de misiune.
 
 ## Integrarea reală Corpuls 3 — pașii rămași
 

@@ -144,6 +144,15 @@ class _CrewScreenState extends State<CrewScreen> {
             _session.misiuneId ?? 'Nicio misiune activă',
             style: Theme.of(context).textTheme.titleMedium,
           ),
+          if (_session.liveVitalsLabel != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _session.liveVitalsLabel!,
+              style: const TextStyle(
+                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontSize: 16),
+            ),
+          ],
           const SizedBox(height: 8),
           for (final spec in MissionButtonSpec.crewButtons) ...[
             const SizedBox(height: 6),

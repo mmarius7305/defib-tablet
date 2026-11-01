@@ -25,6 +25,8 @@ class SajFrameType {
   static const int command = 4;
   static const int ack = 5;
   static const int error = 6;
+  /// Vitale complete (TAS/TAD/FR/temp/glicemie/GCS/pupile) — SAJLink v1.1 / 17A.
+  static const int extendedVitals = 7;
 }
 
 class SajFrame {

@@ -69,6 +69,7 @@ class SimulatorTransport implements ByteTransport {
   final math.Random _rnd = math.Random(7);
   Timer? _ecgTimer;
   Timer? _vitalsTimer;
+  Timer? _extVitalsTimer;
   bool _open = false;
 
   SimRhythm rhythm = SimRhythm.sinus;
@@ -138,6 +139,7 @@ class SimulatorTransport implements ByteTransport {
     _open = true;
     _ecgTimer?.cancel();
     _vitalsTimer?.cancel();
+    _extVitalsTimer?.cancel();
     // Un „tic" = 40 ms = 10 mostre ECG la 250 Hz.
     _ecgTimer = Timer.periodic(const Duration(milliseconds: 40), (_) {
       final b = Bin();
@@ -149,6 +151,61 @@ class SimulatorTransport implements ByteTransport {
       _incoming.add(SajLinkCodec.encode(SajFrame(SajFrameType.ecgBatch, b.take())));
     });
     _vitalsTimer = Timer.periodic(const Duration(seconds: 1), (_) => _sendVitals());
+    _extVitalsTimer =
+        Timer.periodic(const Duration(seconds: 5), (_) => _sendExtendedVitals());
+    // Primul 0x07 imediat, ca gateway/teste să nu aștepte 5 s.
+    _sendExtendedVitals();
+  }
+
+  void _sendExtendedVitals() {
+    // Payload 0x07 — 22 octeți, per 17A §5. Sentineli pe ritmuri fără NIBP.
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final hasNibp =
+        rhythm == SimRhythm.sinus || rhythm == SimRhythm.vtach;
+    final tas = switch (rhythm) {
+      SimRhythm.sinus => 114 + _rnd.nextInt(9),
+      SimRhythm.vtach => 88 + _rnd.nextInt(9),
+      _ => 0xFFFF,
+    };
+    final tad = switch (rhythm) {
+      SimRhythm.sinus => 73 + _rnd.nextInt(7),
+      SimRhythm.vtach => 55 + _rnd.nextInt(7),
+      _ => 0xFFFF,
+    };
+    final fr = switch (rhythm) {
+      SimRhythm.sinus => 13 + _rnd.nextInt(3),
+      SimRhythm.vtach => 22 + _rnd.nextInt(7),
+      SimRhythm.vfib => 6 + _rnd.nextInt(3),
+      SimRhythm.asystole => 0,
+    };
+    final temp = switch (rhythm) {
+      SimRhythm.sinus => 36.6 + _rnd.nextDouble() * 0.6,
+      SimRhythm.vtach => 36.4 + _rnd.nextDouble() * 0.4,
+      SimRhythm.vfib => 36.2,
+      SimRhythm.asystole => 35.8,
+    };
+    final glucose = hasNibp ? 90 + _rnd.nextInt(20) : 0xFFFF;
+    final gcs = switch (rhythm) {
+      SimRhythm.sinus => 15,
+      SimRhythm.vtach => 12 + _rnd.nextInt(3),
+      SimRhythm.vfib => 3 + _rnd.nextInt(3),
+      SimRhythm.asystole => 3,
+    };
+    final pupils = switch (rhythm) {
+      SimRhythm.sinus || SimRhythm.vtach => 0, // normal
+      _ => 1, // midriatice
+    };
+    final b = Bin()
+      ..i64(now)
+      ..u16(tas)
+      ..u16(tad)
+      ..u16(fr)
+      ..f32(temp)
+      ..u16(glucose)
+      ..u8(gcs)
+      ..u8(pupils);
+    _incoming
+        .add(SajLinkCodec.encode(SajFrame(SajFrameType.extendedVitals, b.take())));
   }
 
   void _sendVitals() {
@@ -223,8 +280,10 @@ class SimulatorTransport implements ByteTransport {
     _open = false;
     _ecgTimer?.cancel();
     _vitalsTimer?.cancel();
+    _extVitalsTimer?.cancel();
     _ecgTimer = null;
     _vitalsTimer = null;
+    _extVitalsTimer = null;
   }
 }
 

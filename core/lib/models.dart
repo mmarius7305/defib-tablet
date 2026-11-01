@@ -4,6 +4,9 @@
 /// ca să poată fi refolosite și testate identic peste tot.
 library;
 
+/// Starea pupilelor (cadru 0x07 / 17A).
+enum PupilsStatus { normal, midriatice, miotice, anisocorie, nereactive }
+
 /// O măsurătoare agregată de semne vitale, preluată de la monitor.
 class VitalsSample {
   final DateTime timestamp;
@@ -12,6 +15,10 @@ class VitalsSample {
   final double? etco2; // mmHg
   final double? temperature; // °C
   final NibpReading? nibp;
+  final double? respiratoryRate; // /min
+  final double? glucose; // mg/dL
+  final int? gcs;
+  final PupilsStatus? pupils;
 
   const VitalsSample({
     required this.timestamp,
@@ -20,6 +27,10 @@ class VitalsSample {
     this.etco2,
     this.temperature,
     this.nibp,
+    this.respiratoryRate,
+    this.glucose,
+    this.gcs,
+    this.pupils,
   });
 
   @override

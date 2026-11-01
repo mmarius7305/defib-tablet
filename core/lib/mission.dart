@@ -130,6 +130,17 @@ class GatewayClient {
     return jsonDecode(body) as Map<String, dynamic>;
   }
 
+  Future<Map<String, dynamic>> getLatestVitals() async {
+    final req =
+        await _http.getUrl(_uri('/api/v1/vitals/latest')).timeout(timeout);
+    final res = await req.close().timeout(timeout);
+    final body = await res.transform(utf8.decoder).join();
+    if (res.statusCode != 200) {
+      throw HttpException('vitals ${res.statusCode}: $body');
+    }
+    return jsonDecode(body) as Map<String, dynamic>;
+  }
+
   Future<Map<String, dynamic>> getMissionTimes() async {
     final req =
         await _http.getUrl(_uri('/api/v1/misiune/timpi')).timeout(timeout);

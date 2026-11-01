@@ -11,6 +11,9 @@ class GatewaySession extends ChangeNotifier {
   LinkMode linkMode = LinkMode.offline;
   String statusMessage = 'Gateway: offline';
   String? misiuneId;
+  String? liveHr;
+  String? liveSpo2;
+  String? liveEtco2;
   Map<String, String?> timpi = {
     for (final k in MissionTimeKey.ordered) k: null,
   };
@@ -21,6 +24,12 @@ class GatewaySession extends ChangeNotifier {
   String baseUrl = 'http://127.0.0.1:8089';
 
   bool get isBusy => _busyKey;
+
+  /// Rând scurt de vitale de bază, din ultimul poll REST.
+  String? get liveVitalsLabel {
+    if (liveHr == null && liveSpo2 == null && liveEtco2 == null) return null;
+    return 'FC ${liveHr ?? "—"} · SpO₂ ${liveSpo2 ?? "—"} · EtCO₂ ${liveEtco2 ?? "—"}';
+  }
 
   Future<void> configure(String url) async {
     baseUrl = url.trim();
@@ -52,6 +61,7 @@ class GatewaySession extends ChangeNotifier {
       statusMessage = linkMode == LinkMode.online
           ? 'ONLINE${misiuneId != null ? " · $misiuneId" : ""}'
           : 'STORE-AND-FORWARD${misiuneId != null ? " · $misiuneId" : ""}';
+      await _refreshVitals(client);
       await _flushQueue();
     } catch (_) {
       linkMode = queue.length > 0 ? LinkMode.storeAndForward : LinkMode.offline;
@@ -81,6 +91,25 @@ class GatewaySession extends ChangeNotifier {
     _busyKey = false;
     notifyListeners();
     return true;
+  }
+
+  Future<void> _refreshVitals(GatewayClient client) async {
+    try {
+      final vitals = await client.getLatestVitals();
+      final basic = vitals['basic'];
+      if (basic is Map) {
+        liveHr = _fmtNum(basic['hr'], 0);
+        liveSpo2 = _fmtNum(basic['spo2'], 0);
+        liveEtco2 = _fmtNum(basic['etco2'], 1);
+      }
+    } catch (_) {}
+  }
+
+  static String? _fmtNum(Object? raw, int digits) {
+    if (raw == null) return null;
+    final n = raw is num ? raw.toDouble() : double.tryParse(raw.toString());
+    if (n == null) return null;
+    return n.toStringAsFixed(digits);
   }
 
   Future<void> _flushQueue() async {

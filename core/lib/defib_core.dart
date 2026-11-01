@@ -4,6 +4,7 @@ library;
 export 'connection.dart';
 export 'corpuls_driver.dart';
 export 'frames.dart';
+export 'gateway_service.dart';
 export 'mission.dart';
 export 'models.dart';
 export 'remote_control.dart';

@@ -40,6 +40,8 @@ Valoarea trimisă: `HH:mm` (ora locală). MULTI-ZI e tratat de gateway (17B §4.
 | `core/lib/remote_control.dart` | Comenzi SAJLink 0x04 (telecomandă aparat) |
 | `core/lib/tcp_transport.dart` + `sajlink_driver.dart` | Client TCP SAJLink |
 | `core/tool/sim_server.dart` | Simulator remote pe `:45678` |
+| `core/tool/gateway.dart` | Gateway 17B: REST/WS/SSE pe `:8089` |
+| `core/lib/gateway_service.dart` | Decodor SJL1, timpi MULTI-ZI, store-and-forward |
 
 ## 4. Telecomandă aparat (complement O5)
 

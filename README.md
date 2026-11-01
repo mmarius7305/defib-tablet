@@ -8,7 +8,7 @@ datele (ECG + semne vitale + evenimente) și le afișează live pe ecran.
   codec și același ecran de monitor.
 - **Nucleul comun** (`core/`, Dart pur, portat și în C#): drivere,
   codec de cadre, buffer ECG, telecomandă TCP, timpi misiune.
-  **20/20 teste** + **17/17 verificări** standalone (vezi mai jos).
+  **22/22 teste** + **17/17 verificări** standalone (vezi mai jos).
 
 ## Structură
 
@@ -63,12 +63,13 @@ La pornire: ecranul de conectare oferă **Simulator integrat** (rulează
 integral, fără hardware — ECG la 250 Hz, FC/SpO₂/EtCO₂, comenzi de ritm
 și șoc), **Telecomandă TCP** (client SAJLink către `sim_server` pe portul
 45678 — ritm / șoc / auto-test pe LAN), **Echipaj — timpi misiune**
-(butoane PLECARE…LIBER pe gateway, ONLINE / STORE-AND-FORWARD, navigare)
+(butoane PLECARE…LIBER pe gateway, ONLINE / STORE-AND-FORWARD, vitale live, navigare)
 și **Bluetooth LE** (scanare + transport generic).
 
 ```bash
-# pe PC-ul din ambulanță / lab (simulator remote):
+# pe PC-ul din ambulanță / lab (simulator remote + gateway LAN):
 cd core && dart run tool/sim_server.dart --port 45678
+cd core && dart run tool/gateway.dart --source 127.0.0.1:45678 --http 8089 --store ./gateway_store
 ```
 
 ## Verificarea nucleului
@@ -76,7 +77,7 @@ cd core && dart run tool/sim_server.dart --port 45678
 ```bash
 cd core
 dart pub get
-dart test                    # 20 teste (inclusiv telecomandă TCP)
+dart test                    # 22 teste (telecomandă TCP + gateway 17B)
 # sau, în medii fără runner:
 dart run tool/verify.dart    # 17 verificări
 ```
@@ -84,8 +85,8 @@ dart run tool/verify.dart    # 17 verificări
 Acoperă: codec-ul SAJLink (roundtrip, octet-cu-octet, CRC corupt, zgomot,
 payloaduri mari), bufferul ECG (ordine, circularitate, clear),
 simulatorul (bătăi 72/180 bpm, vitale, șocuri, schimbare ritm),
-telecomanda TCP loopback (șoc 200 J, rhythmAnalysis) și coada offline
-anti-dublu-click pentru timpii de misiune.
+telecomanda TCP loopback (șoc 200 J, rhythmAnalysis), coada offline
+anti-dublu-click și gateway-ul 17B (REST, MULTI-ZI, WS, SSE, persistare).
 
 ## Integrarea reală Corpuls 3 — pașii rămași
 
